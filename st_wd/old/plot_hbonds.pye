@@ -1,0 +1,104 @@
+from pprint import pprint
+import matplotlib.pyplot as plt
+import pickle as pkl
+from PlotFunctions import *
+from AAcodes import *
+
+df = pkl.load(open('dist_hbonds.pkl','rb'))
+
+
+counts = {} # dict where key = bin, value = counts
+for i in [-5,-4,-3,-2,-1,1,2,3,4,5]: # fill in dict with keys
+    counts[i] = 0
+
+# store AA identity info to plot heatmap
+heatmapdict = {} # key = bin (same as above),val = dict where (key = vdm0 or vdmi, val = list of those)
+for i in [-5,-4,-3,-2,-1,1,2,3,4,5]: # fill in dict with keys
+    heatmapdict[i] = {}
+    heatmapdict[i]['vdm0'] = []
+    heatmapdict[i]['vdmi'] = []
+
+def parse_resnums(resnums):
+    ''' Takes a list of resnums in string form and converts to list'''
+    resnums_list = []
+    if resnums.startswith('-'):
+        while resnums.startswith('-'):
+            resnums_list.append(int(resnums[:2]))
+            resnums = resnums[2:]
+    while len(resnums) > 0:
+        resnums_list.append(int(resnums[0]))
+        resnums = resnums[1:]
+    return resnums_list    
+
+def inc_counts_dict(counts, num):
+    '''Takes a num (bin) and increases the count for that in the counts_dict
+    Inputs: counts dictionary, num (bin)'''
+    counts[int(num)] += 1
+    return counts
+
+def inc_heatmap_dict(heatmapdict, num, vdm0, vdmi):
+    '''Takes a num (bin) and goes into that bin for the dict, and adds the 
+    vdm0 and vdmi identities (from appropriate csv file!) to the vdm0 and vdmi lists
+    Inputs: heatmapdict, num (bin, int), vdm0 (str), vdmi (str)'''
+    if vdmi != 'm': # mse
+        ifgvdmdict[num]['vdm0'].append(vdm0)
+        ifgvdmdict[num]['vdmi'].append(vdmi)
+    return ifgvdmdict
+
+def vdm0_vdmi_names(row, num):
+    '''Determines vdm0 and vdmi (where vdm 'i' in bin #)
+    identities from a row of a df (ex: of dist hbond vdms)
+    containing columns from vdm_pdb_info csv.  
+    Uses num (bin) relative resnum to get the correct amino acid from the vdm string
+    Inputs: row, num (bin)'''
+    # vdm_seq_resnums there are 3 that can't be parsed bc they look like '-1019-4-3-2-1012345'
+    vdm_seq_resnums= parse_resnums(row['rel_resnums_x']) # for everything in vdmstring
+    vdmfrag_seq = row['sequence_vdm']
+    vdmi = get_aa_of_relresnum_from_string(num, vdm_seq_resnums, vdmfrag_seq)
+    vdm0 = get_aa_of_relresnum_from_string(0, vdm_seq_resnums, vdmfrag_seq)
+    return vdm0, vdmi
+
+def get_aa_of_relresnum_from_string(num, resnum_string, seq_string):
+    '''Gets index of a relresnum from fragresnumstring and then pull the AA from 
+    the fragment sequence string. Useful for getting the 'ith' 
+    resnum from vdmstring to plot correlation b/n vdm and ifg 
+    identities for the 'ith' interaction bin'''
+    
+    # get index of the num in the context of the whole vdm fragment
+    frag_ix = resnum_string.index(num)
+    vdm = seq_string[frag_ix]
+    #if vdm == 'm':
+    #    print(seq_string)
+    return vdm
+
+for ix, row in df.iterrows():
+    hb_resnums = parse_resnums(row['rel_resnums_y']) # for resnums in vdmfrag ifg interacts with 
+    for num in hb_resnums:
+        try:
+            if num != 0:
+                # add to counts dict for histogram plot
+                counts = inc_counts_dict(counts, num)
+                # add to ifgvdmdict for heatmap
+                ifg, vdm = ifg_vdm_names(row, num)
+                ifgvdmdict = inc_heatmap_dict(ifgvdmdict, num, ifg, vdm)
+
+        except:
+            pass
+    
+group1 = ifgvdmdict[4]['ifg']
+group2 = ifgvdmdict[4]['vdm']
+plot_heatmap_ifg_vdm(group1, group2)
+
+
+
+## plot
+#plt.bar(list(counts.keys()), counts.values())
+#plt.title('Sequence proximity preference for H-bonds')
+#plt.xlabel('relative seq #')
+#plt.ylabel('counts')
+#
+#plt.show()
+#
+#
+#
+#

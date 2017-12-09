@@ -1,0 +1,13 @@
+7 ASP carboxamide
+10 PHE carboxamide
+47 PHE carboxamide,carboxylate
+64 ALA carboxamide
+66 ILE carboxylate
+67 THR carboxylate
+72 ARG carboxylate
+112 LYS carboxamide
+113 SER carboxylate
+114 GLY carboxylate
+115 THR carboxamide
+153 HIS carboxamide
+154 ASP carboxamide,carboxylate

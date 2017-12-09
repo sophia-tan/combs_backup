@@ -1,0 +1,71 @@
+# commandline argument is fs, dssp, 3A, 4A, or 5A
+import numpy as np
+import pickle as pkl
+from pprint import pprint
+from sys import argv
+import matplotlib.pyplot as plt
+
+script, m, perc = argv
+
+nrpdb_dict=pkl.load(open('nrPDB_sasa.pkl','rb'))
+
+MaxASA = {'ALA': 129, 'ARG': 274, 'ASN': 195, 'ASP':193, 'CYS':167, 'GLU':223, 'GLN':225, 'GLY':104,
+          'HIS':224, 'ILE':197, 'LEU':201, 'LYS':236, 'MET':224, 'PHE':240, 'PRO':159, 
+          'SER':155, 'THR':172, 'TRP':285, 'TYR':263, 'VAL':174} 
+
+f, axarr = plt.subplots(4,5,figsize=(12,6.5))
+fig_row = 0
+fig_col = 0
+
+all_sasa = []
+#for aa, resdict in nrpdb_dict.items():
+for i in [1]:
+
+    aa = 'ARG'
+    resdict = nrpdb_dict[aa]
+    
+    x = resdict[m]
+    x = [float(z) for z in x ]
+    #n = [z for z in x if np.isnan(z)]
+    #print(aa, len(n))
+    #x = [z for z in x if not np.isnan(z)]
+    x = np.hstack(x)
+    x = x/MaxASA[aa]
+    for i in x:
+        all_sasa.append(i)
+
+    
+    axarr[fig_row, fig_col].hist(x, bins=10)
+    axarr[fig_row, fig_col].set_title(aa)
+
+    if fig_col < 4:
+        fig_col += 1
+    else:
+        fig_col = 0
+        fig_row += 1
+
+
+all_sasa = sorted(all_sasa)
+all_sasa = [z<perc for z in all_sasa]
+total_counts = sum(all_sasa) # for whatever % cutoff for all aa sasa
+
+for aa, resdict in nrpdb_dict.items():
+    x = resdict[m]
+    x = [float(z) for z in x ]
+    x = np.hstack(x)
+    x = x/MaxASA[aa]
+    x = sorted(x)
+    x = [z<perc for z in x]
+    aa_counts = sum(x) # at whatever % cutoff
+    score = aa_counts/total_counts
+    print(aa, score)
+
+#bin_idx = np.searchsorted(cs, np.percentile(cs, 5))
+#print(bin_idx)
+#print(np.sort(x)[bin_idx])
+
+plt.tight_layout()
+plt.suptitle('relative sasa')
+plt.subplots_adjust(top=0.85) # so suptitle is compatible with tight layout
+#plt.show()
+###
