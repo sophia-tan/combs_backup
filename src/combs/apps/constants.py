@@ -33,6 +33,8 @@ one_letter_code = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K',
 #                       'BB_NH': ['CA', 'N', 'C']}
 
 interactamer_atoms = collections.defaultdict(dict)
+# format of origin, plane1, plane2, so make sure flipped atoms 
+# are in elements 1 and 2
 interactamer_atoms['HIS']['Delta'] = ['ND1', 'CG', 'CB']
 interactamer_atoms['HIS']['Epsilon'] = ['NE2', 'CD2', 'CE1']
 interactamer_atoms['LYS']['Amino'] = ['CE', 'CD', 'NZ']
@@ -52,7 +54,7 @@ interactamer_atoms['VAL']['Isopropyl'] = ['CA', 'CG1', 'CG2']
 interactamer_atoms['LEU']['Isopropyl'] = ['CG', 'CD1', 'CD2']
 interactamer_atoms['ILE']['Propyl'] = ['CB', 'CG1', 'CD1']
 interactamer_atoms['MET']['Thioether'] = ['CG', 'SD', 'CE']
-interactamer_atoms['PHE']['Aryl'] = ['CE1', 'CE2', 'CZ']
+interactamer_atoms['PHE']['Aryl'] = ['CZ','CE1', 'CE2']
 interactamer_atoms['PRO']['Pyrrole'] = ['CB', 'CG', 'CD']
 
 
@@ -87,7 +89,7 @@ flip_names = {'PHE': [('CE1', 'CE2'), ('CD1', 'CD2')],
               'LEU': [('CE1', 'CE2')],
               }
 
-flip_residues = ['PHE', 'ASP', 'GLU', 'ARG', 'TYR', 'VAL', 'LEU']
+flip_residues = ['PHE', 'ASP', 'GLU', 'ARG', 'VAL', 'LEU'] # TYR is special :(
 
 flip_sets = [{'OD1', 'OD2'}, {'CE1', 'CE2'}, {'NH2', 'NH1'}, {'OE1', 'OE2'}, {'CG1', 'CG2'}]
 

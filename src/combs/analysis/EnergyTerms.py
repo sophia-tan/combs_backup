@@ -3,15 +3,14 @@ __all__ = ['make_freqaai_df']
 from .. import cluster
 import pickle as pkl, pandas as pd
 
-def make_freqaai_df(skip10_pkl):   
+def make_freqaai_df(df):
     '''
-    Inputs:
+    Inputs: df of skip10, no repeats vdms
     Returns: dict of dictionaries. (1) counts for bb vdms. 
     (2) its freq. (3) counts for sc vdms. (4) its freq. 
     Note: some vdms will be counted as both bb and sc.'''
     
     bb_atoms = ['N', 'CA', 'C', 'O', 'OXT']
-    df = pkl.load(open(skip10_pkl,'rb'))
     df = df[['resname_vdm', 'atom_names_vdm', 'dist_info']]
 
     # get bb and sc vdms that are within 3.5A

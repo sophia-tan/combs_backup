@@ -5,6 +5,8 @@ import numpy as np
 import os
 import prody as pr
 from ..apps.constants import one_letter_code
+from .. import cluster
+#from ..cluster.Interactamer import *
 import traceback
 import pickle as pkl
 
@@ -215,6 +217,7 @@ def remove_repeat_proteins(orig_df):
     ''' 
     df = orig_df[['pdb','resnum_ifg','resnum_vdm','resname_ifg', 'resname_vdm', 'sequence_vdm', 'sec_struct_dssp_vdm']]
     grouped = df.groupby(by=['pdb', 'resname_ifg', 'resname_vdm'])
+    print(len(orig_df), 'num vdms in original df')
     for pdb_ifg_vdm, group in grouped:
         if len(group) > 1:
             for poss_ix, poss in group.iterrows():
@@ -226,13 +229,35 @@ def remove_repeat_proteins(orig_df):
                         orig_df = orig_df.drop(ix, axis=0)
                         group = group.drop(ix, axis=0)
     
+    print(len(orig_df), 'num vdms after repeats are removed')
     return orig_df
 
 #AAi_database_lookup = pkl.load(open('fake.pkl','rb'))
 
 
+def drop_rare_aa(df):
+    for ix, row in df.iterrows():
+        rare = ['MSE', 'SEP', 'TPO', 'CSO']
+        if row['resname_vdm'] in rare:
+            df.drop(ix, axis=0,inplace=True)
+    return df
 
+def refine_df(path_to_csv, seq_dist, threefive):
+    '''filter df by seq_dist, bb/sc, 3.5.
+    Argument seq_dist should be float. threefive should be boolean'''
+    an = Analyze(path_to_csv)
+    dist_vdms = an.get_distant_vdms(seq_distance=seq_dist)
+    dist_vdms = remove_repeat_proteins(dist_vdms)
 
+    # add info about ifg-vdm dist from contacts csv and drop rare aa
+    contactsdf = an.ifg_contact_vdm
+    dist_vdms = pd.merge(dist_vdms,contactsdf, on=['iFG_count', 'vdM_count'])
+    dist_vdms = drop_rare_aa(dist_vdms)
+    vdms_bb = dist_vdms[dist_vdms.apply(cluster.Interactamer.has_bb_or_sc, bb_or_sc='bb',threepfive=threefive,axis=1)]
+    vdms_sc = dist_vdms[dist_vdms.apply(cluster.Interactamer.has_bb_or_sc, bb_or_sc='sc',threepfive=threefive,axis=1)]
+
+    return dist_vdms, vdms_bb, vdms_sc, an
+    
 
 
 
