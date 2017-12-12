@@ -42,12 +42,12 @@
 #python hierclus.py /home/gpu/Sophia/STcombs/20171118/ carboxylate HIS & 
 #python hierclus.py /home/gpu/Sophia/STcombs/20171118/ carboxylate LYS &
 #python hierclus.py /home/gpu/Sophia/STcombs/20171118/ carboxylate ASP,GLU &
-python hierclus.py /home/gpu/Sophia/STcombs/20171118/ carboxylate ASN,GLN & 
+#python hierclus.py /home/gpu/Sophia/STcombs/20171118/ carboxylate ASN,GLN & 
 #python hierclus.py /home/gpu/Sophia/STcombs/20171118/ carboxylate ALA & 
 #python hierclus.py /home/gpu/Sophia/STcombs/20171118/ carboxylate ARG &
 #python hierclus.py /home/gpu/Sophia/STcombs/20171118/ carboxylate THR &
 #python hierclus.py /home/gpu/Sophia/STcombs/20171118/ carboxylate GLY &
-#python hierclus.py /home/gpu/Sophia/STcombs/20171118/ carboxylate TYR &
+python hierclus.py /home/gpu/Sophia/STcombs/20171118/ carboxylate TYR,GLU &
 #python hierclus.py /home/gpu/Sophia/STcombs/20171118/ carboxylate SER &
 #python hierclus.py /home/gpu/Sophia/STcombs/20171118/ carboxylate TRP &
 #python hierclus.py /home/gpu/Sophia/STcombs/20171118/ carboxylate CYS &
