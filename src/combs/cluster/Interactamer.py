@@ -247,21 +247,43 @@ def make_all_interactamers_hbond_partial_ifg(path_to_csv, outpath, comb, ifg_nam
     make_interactamers(dist_vdms_sc, an, outpath + 'SC', comb)
 
 
-def writepdb_and_get_pickle_info(pdb_path, pklout, vdm, comb, origin_atom, plane_atom1, plane_atom2, resn, ifg_count, vdm_count,v, noifgflip=False):
+def writepdb_and_get_pickle_info(pdb_path, pklout, vdm, comb, origin_atom, plane_atom1, plane_atom2, resn, ifg_count, vdm_count):
     '''helper function for make_rel_vdms and make_interactamers.
-    v = vdm_flips'''
-    bb_coords, sc_coords, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs = \
-        make_rel_vdm_coords(vdm, comb, origin_atom, plane_atom1, plane_atom2)
+    Need vdmelem1dists to choose which vdm flipping to keep.'''
+
+    
+    if resn != 'TYR' and resn not in flip_residues:
+        bb_coords, sc_coords, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs, vdmelem1avgdists = \
+            make_rel_vdm_coords(vdm, comb, origin_atom, plane_atom1, plane_atom2)
+    
+    elif resn == 'TYR':
+        x = make_rel_vdm_coords(vdm, comb, origin_atom, plane_atom1, plane_atom2)
+        y = make_rel_vdm_coords(vdm, comb, origin_atom, 'CE2', plane_atom2, unflipped=False)
+        xelem1dist = x[8]
+        yelem1dist = y[8]
+        if xelem1dist <= yelem1dist:
+            bb_coords, sc_coords, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs, vdmelem1avgdists = x
+        else:
+            bb_coords, sc_coords, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs, vdmelem1avgdists = y
+
+
+    elif resn in flip_residues:
+        x = make_rel_vdm_coords(vdm, comb, origin_atom, plane_atom1, plane_atom2)
+        y = make_rel_vdm_coords(vdm, comb, origin_atom, plane_atom2, plane_atom1, unflipped=False)
+        xelem1dist = x[8]
+        yelem1dist = y[8]
+        if xelem1dist <= yelem1dist:
+            bb_coords, sc_coords, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs, vdmelem1avgdists = x
+        else:
+            bb_coords, sc_coords, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs, vdmelem1avgdists = y
+
     for i, bbc, scc, sccon, scccs, ic, icon, iccs, pdb in zip(range(len(bb_coords)), bb_coords, sc_coords, \
             sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs):
-        pklout.append([ifg_count, vdm_count, i + 1, v+1, bbc, scc, sccon, scccs, ic, icon, iccs, resn])
+        
+        pklout.append([ifg_count, vdm_count, bbc, scc, sccon, scccs, ic, icon, iccs, resn])
         string = repr(pdb).split()[1].split('_')
-        pr.writePDB(pdb_path + '_'.join(string[:-1]) + '_iFlip_%s_vFlip_%s_' %(str(i+1), str(v+1)) + string[-1] + '_oriented.pdb.gz', pdb)
-        if noifgflip==True:
-            break # to prevent i=2 (second ifg)
+        pr.writePDB(pdb_path + '_'.join(string[:-1]) + string[-1] + '_oriented.pdb.gz', pdb)
     return pklout
-
-
 
 def make_rel_vdms(df, an, outpath, comb, origin_atom, plane_atom1, plane_atom2):
     if outpath[-1] != '/':
@@ -292,11 +314,11 @@ def make_rel_vdms(df, an, outpath, comb, origin_atom, plane_atom1, plane_atom2):
                     #                                                                  'CD', plane_atom2)
                     # else:
                     
-                    pklout=writepdb_and_get_pickle_info(pdb_path,pklout, vdm, comb, origin_atom, plane_atom1, plane_atom2, resn, ifg_count, vdm_count, 0)
+                    pklout=writepdb_and_get_pickle_info(pdb_path,pklout, vdm, comb, origin_atom, plane_atom1, plane_atom2, resn, ifg_count, vdm_count)
                     
                 except Exception:
                     traceback.print_exc()
-            # output format = [ifg_count, vdm_count, ifg_flip, vdm_flip, bb_coords, sc_coords_all, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, vdm_resn]
+            # output format = [ifg_count, vdm_count,  bb_coords, sc_coords_all, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, vdm_resn]
 
             if pklout:
                 with open(picklepath + resn + '_rel_vdms.pickle', 'wb') as f:
@@ -341,19 +363,7 @@ def make_interactamers(df, an, outpath, comb):
                         # else:
 
                         ### added by sophia for flipping vdms ###
-                        # need no ifgflip=True bc if vdms need flipping, flip vdms on only the first ifg and ignore second ifg
-                        if resn == 'TYR':
-                            pklout=writepdb_and_get_pickle_info(pdb_path,pklout, vdm, comb, origin_atom, plane_atom1, plane_atom2, resn, ifg_count, vdm_count, 0, noifgflip=True)
-                            pklout=writepdb_and_get_pickle_info(pdb_path,pklout, vdm, comb, origin_atom, 'CE2', plane_atom2, resn, ifg_count, vdm_count, 1, noifgflip=True)
-                        
-                        elif resn in flip_residues:
-                            pklout=writepdb_and_get_pickle_info(pdb_path,pklout, vdm, comb, origin_atom, plane_atom1, plane_atom2, resn, ifg_count, vdm_count, 0, noifgflip=True)
-                            pklout=writepdb_and_get_pickle_info(pdb_path,pklout, vdm, comb, origin_atom, plane_atom2, plane_atom1, resn, ifg_count, vdm_count, 1, noifgflip=True)
-
-                        else:
-                            pklout=writepdb_and_get_pickle_info(pdb_path,pklout, vdm, comb, origin_atom, plane_atom1, plane_atom2, resn, ifg_count, vdm_count, 0)
-
-
+                        pklout=writepdb_and_get_pickle_info(pdb_path,pklout, vdm, comb, origin_atom, plane_atom1, plane_atom2, resn, ifg_count, vdm_count)
 
                     except Exception:
                         traceback.print_exc()
@@ -433,7 +443,7 @@ def parse_interactamers_aa(df, an, resn):
     return an.parse_vdms(df)
 
 
-def make_rel_vdm_coords(pdb, comb, origin_atom, plane_atom1, plane_atom2):
+def make_rel_vdm_coords(pdb, comb, origin_atom, plane_atom1, plane_atom2, unflipped=True):
     origin_coords = pdb.select('chain X and resnum 10 and name ' + origin_atom).getCoords()[0]
     pdb_coords = pdb.getCoords()
     pdb_coords_neworigin = pdb_coords - origin_coords
@@ -451,7 +461,8 @@ def make_rel_vdm_coords(pdb, comb, origin_atom, plane_atom1, plane_atom2):
     new_origin_coords = pdbcopy.select('chain X and resnum 10 and name ' + origin_atom).getCoords()[0]
     new_plane_atom1_coords = pdbcopy.select('chain X and resnum 10 and name ' + plane_atom1).getCoords()[0]
     new_plane_atom2_coords = pdbcopy.select('chain X and resnum 10 and name ' + plane_atom2).getCoords()[0]
-    # vdm_coords = [y for x in [new_origin_coords, new_plane_atom1_coords, new_plane_atom2_coords] for y in x]
+    vdm_coords = [y for x in [new_origin_coords, new_plane_atom1_coords, new_plane_atom2_coords] for y in x]
+    # format of vdm_coords is [0,0,0, atom1x, atom1y, atom1z, atom2x, atom2y, atom2z]
     bb_coords = np.array([new_origin_coords, new_plane_atom1_coords, new_plane_atom2_coords])
     if pdbcopy.select('chain X and resnum 10 and name CA').getResnames()[0] != 'GLY':
         # sc_coords = pdbcopy.select('chain X and resnum 10 and sidechain and not element H D').getCoords()
@@ -463,14 +474,35 @@ def make_rel_vdm_coords(pdb, comb, origin_atom, plane_atom1, plane_atom2):
         sc_coords_ON = None
         sc_coords_CS = None
     ifg_sels = make_ifg_atom_sele(pdbcopy, comb) # there are 2 if iFG can be flipped
+    ### for iFG flipping:
+    ### choose only one coord set! take the one where the avg of the distances to the 3 vdm atoms is less
+    if len(ifg_sels) == 2:
+        ambig_ind = [ind for ind in range(len(ifg_sels[0])) if str(ifg_sels[0][ind].getCoords()) != str(ifg_sels[1][ind].getCoords())] 
+        first = ifg_sels[0][ambig_ind[0]].getCoords()[0]
+        second = ifg_sels[1][ambig_ind[0]].getCoords()[0]
+        def chooseflip(vdm_coords, which):
+            one, two, three = np.array(vdm_coords[:3]), np.array(vdm_coords[3:6]), np.array(vdm_coords[6:9])
+            distances = []
+            for i in [one,two,three]:
+                dist = np.linalg.norm(which-i)
+                distances.append(dist)
+            return np.array(distances).mean()
+
+        first_avgs = chooseflip(vdm_coords, first)
+        second_avgs = chooseflip(vdm_coords, second)
+        if first_avgs <= second_avgs: 
+            ifg_sels = [ifg_sels[0]]
+        else:
+            ifg_sels = [ifg_sels[1]]
+
     ifg_coords = []
     ifg_CS_coords = []
     ifg_ON_coords = []
     pdbcopies = []
     orig_sel = ifg_sels[0]
     for ifg_sel in ifg_sels:
-        # ifg_coords.append([coord for ifg in ifg_sel for sel in ifg for coord in sel.getCoords()])
         coords = np.array([sel.getCoords() for ifg in ifg_sel for sel in ifg])
+
         coords_ON = [ifg.select('element O N').getCoords() for ifg in ifg_sel
                               if ifg.select('element O N') is not None][0]
         coords_CS = [ifg.select('element C S').getCoords() for ifg in ifg_sel
@@ -481,8 +513,23 @@ def make_rel_vdm_coords(pdb, comb, origin_atom, plane_atom1, plane_atom2):
         for sel, coor in zip(orig_sel, coords):
             sel.setCoords(coor)
         pdbcopies.append(pdbcopy.copy())
+    
+    ### for vdm flipping: report avg distances of vdm flippable atoms (elements 1 and 2)
+    ### to all 3 atoms of iFG
+    def choosevdm(vdm_coords, ifg_coords, unflipped):
+        elem1vdm = np.array(vdm_coords[3:6])
+        
+        dist = []
+        ifg_coords = ifg_coords[0][::-1] # to get terminal 3 atoms of ifg
+        for i in range(3):
+            d = np.linalg.norm(ifg_coords[i] - elem1vdm)
+            dist.append(d)
+        return np.array(dist).mean()
+    
+    vdmelem1avgdists = choosevdm(vdm_coords,ifg_coords, unflipped)
+    
     return [bb_coords]*len(ifg_coords), [sc_coords]*len(ifg_coords), [sc_coords_ON]*len(ifg_coords), \
-           [sc_coords_CS]*len(ifg_coords), ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbcopies
+           [sc_coords_CS]*len(ifg_coords), ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbcopies, vdmelem1avgdists
 
 def make_sc_atom_coords(pdb):
     '''Added by Sophia: need to flip vdms if necessary!'''

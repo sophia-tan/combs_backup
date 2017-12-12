@@ -83,7 +83,8 @@ def hierarchical_cluster(iFGcoords, pdbs_of_iFG_coords, max_d=0.9, print_cluster
     Returns: sorted_clusters (list where each element is a list of all the pdbs in that cluster)
     '''
 
-    #rmsd_mat = make_rmsd_matrix(iFGcoords)
+    rmsd_mat = make_rmsd_matrix(iFGcoords)
+    '''
     Z = hier.linkage(iFGcoords,method='single')
     #Z = hier.linkage(scipy.spatial.distance.squareform(rmsd_mat),method='single')
     clusters = fcluster(Z, max_d, criterion='distance') # retrieve clusters
@@ -126,4 +127,4 @@ def hierarchical_cluster(iFGcoords, pdbs_of_iFG_coords, max_d=0.9, print_cluster
                     outfile = outputdir+'cluster%s'%(clus_num+name)
                 shutil.copy(orig, outfile)
     return sorted_clusters
-
+    '''
