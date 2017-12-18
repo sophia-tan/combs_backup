@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 script, freq_aai_db, aa_source = argv
+# freq_aai_db is in ../Lookups
 
 if aa_source == 'db':
     aa_dict=pkl.load(open('sasa_database_from_07252017.pkl','rb'))

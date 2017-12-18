@@ -14,8 +14,10 @@ df = df[['iFG_count', 'pdb', 'resname_ifg', 'resnum_ifg', 'chid_ifg', 'vdM_count
 print(len(df))
 df = analysis.Analysis.remove_repeat_proteins(df)
 
-# add sasa info
-sasadf = an.vdm_sasa_info
-merged = pd.merge(df,sasadf, on=['iFG_count', 'vdM_count'])
+pkl.dump(df, open('noskip_%s_sasa_f.pkl' %ifg, 'wb'))
 
-pkl.dump(merged, open('noskip_%s_sasa.pkl' %ifg, 'wb'))
+## add sasa info
+#sasadf = an.vdm_sasa_info
+#merged = pd.merge(df,sasadf, on=['iFG_count', 'vdM_count'])
+#
+#pkl.dump(merged, open('noskip_%s_sasa.pkl' %ifg, 'wb'))

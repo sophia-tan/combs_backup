@@ -8,8 +8,11 @@ sys.path.append('/home/gpu/Sophia/combs/src/')
 import prody as pr
 import freesasa, math
 import numpy as np, pickle as pkl, pandas as pd
+from combs import analysis
+from combs import parse
+from combs import apps
 
-script, design_pdb, fg_vdm_txt= sys.argv
+#script, design_pdb, fg_vdm_txt, ligand_text= sys.argv
 
 ############################################################################################
 ################### make pandas df for vdms and their scores ###############################
@@ -25,13 +28,14 @@ def make_df(fg_vdm_txt):
             vdms_resnum.append(line[0])
             vdms_aa.append(line[1])
             ifg.append(line[2])
-    columns = ['iFG', 'AA', 'sasa_cb_3a', 'burial score', 
-                'dunbrack', 'rama', 'rosetta hbonds']
+    columns = ['iFG', 'AA', 'BB or SC', 'sasa_cb_3a', 'burial score', 
+                'dunbrack', 'rama', 'rosetta hbonds', 'f(AAi) bb', 'f(AAi) sc']
     df = pd.DataFrame(columns=columns, index=pd.Series(vdms_resnum, name='resnum'))
     # fill in df
     for ix in range(len(vdms_aa)):
-        df.loc[vdms_resnum[ix], 'iFG'] = ifg[ix]
-        df.loc[vdms_resnum[ix], 'AA'] = vdms_aa[ix]
+        for fg in ifg[ix].split(','):
+            df.loc[vdms_resnum[ix], 'iFG'] = fg
+            df.loc[vdms_resnum[ix], 'AA'] = vdms_aa[ix]
     return df
 
 ############################################################################################
@@ -71,15 +75,13 @@ def freesasa_cb(prody_parsed, probe_radius=1.4):
 
 # 2) 'find sasa bin for that vdm and score' ###########################
 
-def scoring_sasa(sasadict, score_df):
+def scoring_sasa(sasadict, score_df, lookup_dir):
     # load lookup table
-    directory = '/home/gpu/Sophia/combs/st_wd/sasa/'
-    lookup = pkl.load(open(directory+'scores_largeprobe_sasa_db_lookup.pkl','rb'))
+    lookup = pkl.load(open(lookup_dir+'scores_largeprobe_sasa_db_lookup.pkl','rb'))
     # take -np.log10 for all values in df, and drop rows 150-180
     lookup = lookup.drop([160, 170, 180, 190])
     lookup = lookup.applymap(lambda g: -np.log10(g))
     for ix, row in score_df.iterrows():
-    #for key, value in sasadict.items(): # key is resnum
         value = sasadict[int(ix)]
         aa, sasa = value[0], value[1]
         if sasa > 150: # this site is exposed
@@ -96,5 +98,68 @@ def scoring_sasa(sasadict, score_df):
     return score_df
 
 ############################################################################################
-################### get pyrosetta scores of SS and rotamers ################################
-############################################################################################
+############################ get freq_aai score ############################################
+############################################################################################i
+def get_ifgatoms(ligand_text):
+    print(ligand_text)
+    ifgdict = {}
+    with open(ligand_text) as inF:
+        for line in inF:
+            line = line.strip()
+            line = line.split(' ')
+            ifg, resnum, atoms= line[0], line[1], line[2]
+            atoms = atoms.split('+')
+            atoms = ' '.join(atoms)
+            ifgdict[ifg] = [resnum, atoms]
+    return ifgdict
+
+def freqaai(score_df, parsed_des, ligand_text, lookup_dir):
+    # get ifgatoms from ifg_text
+    ifgdict = get_ifgatoms(ligand_text)
+
+    for ix, row in score_df.iterrows():
+        vdm_name, res_num, ifg_name = row['AA'], ix, row['iFG']
+        v = parsed_des.select('resnum '+res_num)
+        v = v.select('not element H D')
+        if v.getResnames()[0] != vdm_name:
+            raise Exception
+        
+        # find out if interaction is BB or SC
+        bb = ['C', 'O', 'OXT', 'CA', 'N']
+        polar = ['O', 'N']
+        ifgresnum, ifgatoms = ifgdict[ifg_name]
+        ifg = parsed_des.select('resnum %s and name %s'%(ifgresnum, ifgatoms))
+
+        vdmatoms = []
+        for atom in ifg:
+            if atom.getName()[0] in polar:
+                radius = 3.5
+            else:
+                radius = 4.8
+            for nbr in pr.findNeighbors(atom, radius, v):
+                ifgatom, vdmatom, dist = nbr
+                ifgatom, vdmatom = ifgatom.getName(), vdmatom.getName()
+                if dist <= 3.5:
+                    vdmatoms.append(vdmatom)
+                else:
+                    if ifgatom[0]=='C' and vdmatom[0]=='C':
+                        vdmatoms.append(vdmatom)
+        vdmatoms = list(set(vdmatoms))
+        bbinteraction = sum([x in bb for x in vdmatoms])
+        scinteraction = sum([x not in bb for x in vdmatoms])
+
+        # get lookup info for ifg
+        pklfile = lookup_dir + 'AAi_freq_combed_%s.pkl'%ifg_name
+        lookup = pkl.load(open(pklfile,'rb'))
+        
+        # get database frequencies 
+        db_dict = analysis.EnergyTerms.AAi_db_lookup(lookup_dir)
+        if bbinteraction > 0:
+            score = lookup.ix[vdm_name, 'vdm_freq_bb']
+            row['f(AAi) bb'] = score / db_dict[vdm_name]
+        if scinteraction > 0: 
+            score = lookup.ix[vdm_name, 'vdm_freq_sc']
+            row['f(AAi) sc'] = score / db_dict[vdm_name]
+    return score_df
+
+

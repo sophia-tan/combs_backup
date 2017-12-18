@@ -30,7 +30,7 @@ for aa, x in sasa_dict.items():
     for i in x:
         all_sasa.append(i)
 
-lookup = pkl.load(open('AAi_database_lookups.pkl','rb')) # lookup table for freq(AAi) in db!
+lookup = pkl.load(open('../Lookups/AAi_database_lookups.pkl','rb')) # lookup table for freq(AAi) in db!
 
 df = pd.DataFrame(index = index, columns = AAs)
 for _bin in index:

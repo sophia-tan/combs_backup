@@ -19,7 +19,7 @@ merged = merged[['iFG_count', 'pdb', 'resname_ifg', 'resnum_ifg', 'chid_ifg', 'v
 
 print(len(merged), 'number of vdMs w/ repeats removed')
 #pkl.dump(merged, open('%s_skip10.pkl' %ifg, 'wb'))
-
+print(merged)
 aai_df = analysis.EnergyTerms.make_freqaai_df(merged)
 print(aai_df)
-pkl.dump(aai_df, open('AAi_freq_combed_%s_.pkl' % ifg, 'wb'))
+pkl.dump(aai_df, open('AAi_freq_combed_%s.pkl' % ifg, 'wb'))
