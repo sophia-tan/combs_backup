@@ -1,4 +1,4 @@
-__all__ = ['Analyze']
+__all__ = ['Analyze', 'refine_df', 'combine_bb_sc']
 
 import pandas as pd
 import numpy as np
@@ -242,12 +242,15 @@ def drop_rare_aa(df):
             df.drop(ix, axis=0,inplace=True)
     return df
 
-def refine_df(path_to_csv, seq_dist, threefive):
+def refine_df(path_to_csv, seq_dist, threefive, repeats_already_removed=False, repeats_removed_df=None):
     '''filter df by seq_dist, bb/sc, 3.5.
     Argument seq_dist should be float. threefive should be boolean'''
     an = Analyze(path_to_csv)
-    dist_vdms = an.get_distant_vdms(seq_distance=seq_dist)
-    dist_vdms = remove_repeat_proteins(dist_vdms)
+    if repeats_already_removed==False:
+        dist_vdms = an.get_distant_vdms(seq_distance=seq_dist)
+        dist_vdms = remove_repeat_proteins(dist_vdms)
+    else:
+        dist_vdms = repeats_removed_df
 
     # add info about ifg-vdm dist from contacts csv and drop rare aa
     contactsdf = an.ifg_contact_vdm
@@ -258,6 +261,17 @@ def refine_df(path_to_csv, seq_dist, threefive):
 
     return dist_vdms, vdms_bb, vdms_sc, an
     
+def combine_bb_sc(bb, sc):
+    '''useful for using the refine_df fx to get vdms within 3.5A within a separation dist.
+    however, that returns separate dfs for bb/sc, so this combines them and takes out repeats'''
+
+    pd.concat([bb, sc])
+    concatenated = pd.concat([bb, sc],ignore_index=True)
+    nodup=concatenated.drop_duplicates()
+    return nodup
+    
+
+
 
 
 

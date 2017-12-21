@@ -253,7 +253,7 @@ def writepdb_and_get_pickle_info(pdb_path, pklout, vdm, comb, origin_atom, plane
 
     
     if resn != 'TYR' and resn not in flip_residues:
-        bb_coords, sc_coords, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs, vdmelem1avgdists = \
+        bb_coords, sc_coords, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs = \
             make_rel_vdm_coords(vdm, comb, origin_atom, plane_atom1, plane_atom2)
     
     elif resn == 'TYR':
@@ -282,7 +282,7 @@ def writepdb_and_get_pickle_info(pdb_path, pklout, vdm, comb, origin_atom, plane
         
         pklout.append([ifg_count, vdm_count, bbc, scc, sccon, scccs, ic, icon, iccs, resn])
         string = repr(pdb).split()[1].split('_')
-        pr.writePDB(pdb_path + '_'.join(string[:-1]) + string[-1] + '_oriented.pdb.gz', pdb)
+        pr.writePDB(pdb_path + '_'.join(string[:-1]) + '_'+string[-1] + '_oriented.pdb.gz', pdb)
     return pklout
 
 def make_rel_vdms(df, an, outpath, comb, origin_atom, plane_atom1, plane_atom2):
@@ -521,13 +521,12 @@ def make_rel_vdm_coords(pdb, comb, origin_atom, plane_atom1, plane_atom2, unflip
         
         dist = []
         ifg_coords = ifg_coords[0][::-1] # to get terminal 3 atoms of ifg
-        for i in range(3):
+        for i in range(min(3,len(ifg_coords))):
             d = np.linalg.norm(ifg_coords[i] - elem1vdm)
             dist.append(d)
         return np.array(dist).mean()
     
     vdmelem1avgdists = choosevdm(vdm_coords,ifg_coords, unflipped)
-    
     return [bb_coords]*len(ifg_coords), [sc_coords]*len(ifg_coords), [sc_coords_ON]*len(ifg_coords), \
            [sc_coords_CS]*len(ifg_coords), ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbcopies, vdmelem1avgdists
 
@@ -660,7 +659,10 @@ def has_bb_or_sc(row, bb_or_sc,threepfive=False):
     # only want to get the bb & sc vdMs if the interacting atoms
     # are within 3.5A
     bb_atoms = ['N', 'CA', 'C', 'O', 'OXT']
-    vdmatoms = row['atom_names_vdm'].split(' ')
+    try:
+        vdmatoms = row['atom_names_vdm'].split(' ')
+    except:
+        vdmatoms = row['atom_names'].split(' ')
     num_bb_in_vdm = sum([x in bb_atoms for x in vdmatoms])
     has_bb = num_bb_in_vdm > 0
     has_sc = len(vdmatoms) > num_bb_in_vdm

@@ -92,9 +92,20 @@ def pyrosetta_scores(design_pdb, residues, score_df):
     pose = Pose()
     # -load the data from pdb_file into the pose
     pose_from_file(pose, design_pdb)
+    residues_int=[]
+    for r in residues:
+        try:
+            r = int(r)
+        except:
+            r = int(r[:-1])
+        residues_int.append(r)
+    residues = residues_int
     scoresdict, hbonddict = pose_scoring(pose, residues)
     for ix, row in score_df.iterrows():
-        ix = int(ix)
+        try:
+            ix = int(ix)
+        except:
+            ix = int(ix[:-1])
         row['rosetta hbonds'] = hbonddict[ix]
         row['dunbrack'] = scoresdict[ix]['fa_dun']
         row['rama'] = scoresdict[ix]['rama_prepro']

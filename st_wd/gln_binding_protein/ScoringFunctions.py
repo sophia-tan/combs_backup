@@ -30,14 +30,26 @@ def make_df(fg_vdm_txt):
             ifg.append(line[2])
     columns = ['iFG', 'AA', 'BB or SC', 'sasa_cb_3a', 'burial score', 
                 'dunbrack', 'rama', 'rosetta hbonds', 'f(AAi) bb', 'f(AAi) sc']
-    df = pd.DataFrame(columns=columns, index=pd.Series(vdms_resnum, name='resnum'))
+    df = pd.DataFrame(columns=columns)
+    #df = pd.DataFrame(columns=columns, index=pd.Series(vdms_resnum, name='resnum'))
     # fill in df
+    alphabet='abcdefg'
     for ix in range(len(vdms_aa)):
-        for fg in ifg[ix].split(','):
-            df.loc[vdms_resnum[ix], 'iFG'] = fg
-            df.loc[vdms_resnum[ix], 'AA'] = vdms_aa[ix]
+        if len(ifg[ix].split(','))>1:
+            alphabet_ix = 0
+            for fg in ifg[ix].split(','):
+                index = str(vdms_resnum[ix])+alphabet[alphabet_ix]
+                df = fill_df(df, vdms_resnum, index, ix, fg, vdms_aa)
+                alphabet_ix += 1
+        else: 
+            index = str(vdms_resnum[ix])
+            df = fill_df(df, vdms_resnum, index, ix, ifg[ix], vdms_aa)
     return df
 
+def fill_df(df,vdms_resnum, index, ix, fg, vdms_aa):
+    df.loc[index, 'iFG'] = fg
+    df.loc[index, 'AA'] = vdms_aa[ix]
+    return df
 ############################################################################################
 ########################### SASAs at cb 3A probe ###########################################
 ############################################################################################
@@ -55,6 +67,10 @@ def cb_sasas(design_pdb, score_df):
     for resnum, aa in zip(score_df.index, score_df['AA']): # shouldn't have to worry about 
             #neg resnums in designed proteins
         # get Cb atoms 
+        try: 
+            resnum = int(resnum)
+        except:
+            resnum = int(resnum[:-1])
         prody_pdb_bb_cb_atom_ind = prody_parsed.select('protein and (backbone or name CB) and \
             not element H D').getIndices()
         # get Cb atoms for resnum
@@ -82,6 +98,10 @@ def scoring_sasa(sasadict, score_df, lookup_dir):
     lookup = lookup.drop([160, 170, 180, 190])
     lookup = lookup.applymap(lambda g: -np.log10(g))
     for ix, row in score_df.iterrows():
+        try:
+            ix = int(ix)
+        except:
+            ix = int(ix[:-1])
         value = sasadict[int(ix)]
         aa, sasa = value[0], value[1]
         if sasa > 150: # this site is exposed
@@ -119,7 +139,11 @@ def freqaai(score_df, parsed_des, ligand_text, lookup_dir):
 
     for ix, row in score_df.iterrows():
         vdm_name, res_num, ifg_name = row['AA'], ix, row['iFG']
-        v = parsed_des.select('resnum '+res_num)
+        try:
+            res_num = int(res_num)
+        except:
+            res_num = int(res_num[:-1])
+        v = parsed_des.select('resnum '+str(res_num))
         v = v.select('not element H D')
         if v.getResnames()[0] != vdm_name:
             raise Exception
@@ -156,10 +180,10 @@ def freqaai(score_df, parsed_des, ligand_text, lookup_dir):
         db_dict = analysis.EnergyTerms.AAi_db_lookup(lookup_dir)
         if bbinteraction > 0:
             score = lookup.ix[vdm_name, 'vdm_freq_bb']
-            row['f(AAi) bb'] = score / db_dict[vdm_name]
+            row['f(AAi) bb'] = -np.log10(score / db_dict[vdm_name])
         if scinteraction > 0: 
             score = lookup.ix[vdm_name, 'vdm_freq_sc']
-            row['f(AAi) sc'] = score / db_dict[vdm_name]
+            row['f(AAi) sc'] = -np.log10(score / db_dict[vdm_name])
     return score_df
 
 

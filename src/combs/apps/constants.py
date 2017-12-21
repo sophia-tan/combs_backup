@@ -1,4 +1,4 @@
-__all__ = ['one_letter_code']
+__all__ = ['one_letter_code', 'ifg_sele_dict', 'resname_dict', 'three_to_one', 'one_to_three']
 
 import collections
 
@@ -108,3 +108,32 @@ residue_sc_names = {'ALA': ['CB'], 'CYS': ['CB', 'SG'], 'ASP': ['CB', 'CG', 'OD1
                     'TYR': ['CB', 'CG', 'CD1', 'CD2', 'CE1', 'CE2', 'CZ', 'OH'],
                     'GLN': ['CB', 'CG', 'CD', 'OE1', 'NE2'],
                     'ARG': ['CB', 'CG', 'CD', 'NE', 'CZ', 'NH1', 'NH2']}
+
+ifg_sele_dict = {}
+ifg_sele_dict['carboxamide'] = {'ASN': 'CB CG ND2 OD1', 'GLN': 'CG CD NE2 OE1'}
+ifg_sele_dict['carboxylate'] = {'ASP': 'CB CG OD2 OD1', 'GLU': 'CG CD OE2 OE1'}
+ifg_sele_dict['imidazole'] = {'HIS': 'CG CD2 NE2 CE1 ND1'}
+ifg_sele_dict['indole'] = {'TRP': 'CG CD1 NE1 CE2 CZ2 CH2 CZ3 CE3 CD2'}
+ifg_sele_dict['tyrCOH'] = {'TYR': 'CZ OH'}
+ifg_sele_dict['backboneCO'] = {'ANY': 'C O'}
+ifg_sele_dict['serineCOH'] = {'SER':'CB OG'}
+ifg_sele_dict['thrCOH'] = {'THR':'CB OG1'}
+
+
+
+resname_dict = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K',
+                   'ILE': 'I', 'PRO': 'P', 'THR': 'T', 'PHE': 'F', 'ASN': 'N',
+                   'GLY': 'G', 'HIS': 'H', 'LEU': 'L', 'ARG': 'R', 'TRP': 'W',
+                   'ALA': 'A', 'VAL': 'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M',
+                   }
+
+# dictionaries to convert 1-letter AA to 3-letter and vice versa
+
+three_to_one = {'ALA':'A', 'CYS':'C', 'ASP':'D', 'GLU':'E', 'PHE':'F', \
+    'GLY':'G', 'HIS':'H', 'ILE':'I', 'LYS':'K', 'LEU':'L', 'MET':'M', 'ASN':'N', \
+    'PRO':'P', 'GLN':'Q', 'ARG':'R', 'SER':'S', 'THR':'T', 'VAL':'V', 'TRP':'W', 'TYR':'Y'}
+
+one_to_three = {}
+for key,val in three_to_one.items():
+    one_to_three[val] = key
+

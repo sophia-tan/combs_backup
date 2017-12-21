@@ -5,8 +5,9 @@ from pprint import pprint
 import pandas as pd
 from sys import argv
 
-script, ifg_sasa_pkl, ifg = argv
+script, ifg = argv
 
+ifg_sasa_pkl = 'noskip_%s_sasa.pkl'%ifg # in wd 
 ifg_sasa=pkl.load(open(ifg_sasa_pkl,'rb'))
 
 sasa_dict = {}
