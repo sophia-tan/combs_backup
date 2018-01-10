@@ -446,11 +446,11 @@ def parse_interactamers_aa(df, an, resn):
 def make_rel_vdm_coords(pdb, comb, origin_atom, plane_atom1, plane_atom2, unflipped=True, scoring=False, vdmselection=None, ifgselection=None):
     if vdmselection is None:
         vdmselection = 'chain X and resnum 10 and name '
-    origin_coords = pdb.select(vdmselection + origin_atom).getCoords()[0]
+    origin_coords = pdb.select('vdmselection' + origin_atom).getCoords()[0]
     pdb_coords = pdb.getCoords()
     pdb_coords_neworigin = pdb_coords - origin_coords
-    plane_atom1_coords = pdb.select(vdmselection + plane_atom1).getCoords()[0] - origin_coords
-    plane_atom2_coords = pdb.select(vdmselection + plane_atom2).getCoords()[0] - origin_coords
+    plane_atom1_coords = pdb.select('vdmselection' + plane_atom1).getCoords()[0] - origin_coords
+    plane_atom2_coords = pdb.select('vdmselection' + plane_atom2).getCoords()[0] - origin_coords
     x_norm = plane_atom1_coords / np.linalg.norm(plane_atom1_coords)
     orthvec = np.cross(plane_atom1_coords, plane_atom2_coords)
     z_norm = -1 * orthvec / np.linalg.norm(orthvec)
@@ -460,22 +460,22 @@ def make_rel_vdm_coords(pdb, comb, origin_atom, plane_atom1, plane_atom2, unflip
     pdb_coords_neworigin_rot = np.dot(pdb_coords_neworigin, R.T)
     pdbcopy = pdb.copy()
     pdbcopy.setCoords(pdb_coords_neworigin_rot)
-    new_origin_coords = pdbcopy.select(vdmselection + origin_atom).getCoords()[0]
-    new_plane_atom1_coords = pdbcopy.select(vdmselection + plane_atom1).getCoords()[0]
-    new_plane_atom2_coords = pdbcopy.select(vdmselection + plane_atom2).getCoords()[0]
+    new_origin_coords = pdbcopy.select('vdmselection' + origin_atom).getCoords()[0]
+    new_plane_atom1_coords = pdbcopy.select('vdmselection' + plane_atom1).getCoords()[0]
+    new_plane_atom2_coords = pdbcopy.select('vdmselection' + plane_atom2).getCoords()[0]
     vdm_coords = [y for x in [new_origin_coords, new_plane_atom1_coords, new_plane_atom2_coords] for y in x]
     # format of vdm_coords is [0,0,0, atom1x, atom1y, atom1z, atom2x, atom2y, atom2z]
     bb_coords = np.array([new_origin_coords, new_plane_atom1_coords, new_plane_atom2_coords])
-    if pdbcopy.select(vdmselection +'CA').getResnames()[0] != 'GLY':
+    if pdbcopy.select('vdmselectionCA').getResnames()[0] != 'GLY':
         # sc_coords = pdbcopy.select('chain X and resnum 10 and sidechain and not element H D').getCoords()
-        sc_coords = make_sc_atom_coords(pdbcopy, vdmselection)
-        sc_coords_ON = make_sc_atom_coords_ON(pdbcopy, vdmselection)
-        sc_coords_CS = make_sc_atom_coords_CS(pdbcopy, vdmselection)
+        sc_coords = make_sc_atom_coords(pdbcopy)
+        sc_coords_ON = make_sc_atom_coords_ON(pdbcopy)
+        sc_coords_CS = make_sc_atom_coords_CS(pdbcopy)
     else:
         sc_coords = None
         sc_coords_ON = None
         sc_coords_CS = None
-    ifg_sels = make_ifg_atom_sele(pdbcopy, comb, ifgselection, scoring=scoring) # there are 2 if iFG can be flipped
+    ifg_sels = make_ifg_atom_sele(pdbcopy, comb, scoring=scoring) # there are 2 if iFG can be flipped
     ### for iFG flipping:
     ### choose only one coord set! take the one where the avg of the distances to the 3 vdm atoms is less
     if len(ifg_sels) == 2:
@@ -531,31 +531,31 @@ def make_rel_vdm_coords(pdb, comb, origin_atom, plane_atom1, plane_atom2, unflip
     return [bb_coords]*len(ifg_coords), [sc_coords]*len(ifg_coords), [sc_coords_ON]*len(ifg_coords), \
            [sc_coords_CS]*len(ifg_coords), ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbcopies, vdmelem1avgdists
 
-def make_sc_atom_coords(pdb,vdmselection=None):
+def make_sc_atom_coords(pdb):
     '''Added by Sophia: need to flip vdms if necessary!'''
-    resname = pdb.select(vdmselection+'CA').getResnames()[0]
+    resname = pdb.select('vdmselectionCA').getResnames()[0]
     sc_coords = []
     for name in residue_sc_names[resname]:
-        coord = pdb.select(vdmselection + name).getCoords()[0]
+        coord = pdb.select('vdmselection' + name).getCoords()[0]
         sc_coords.append(coord)
     sc_coords = np.array(sc_coords)
     return sc_coords
 
-def make_sc_atom_coords_ON(pdb, vdmselection=None):
-    resname = pdb.select(vdmselection+'CA').getResnames()[0]
-    sc_coords = np.array([pdb.select(vdmselection + name).getCoords()[0]
+def make_sc_atom_coords_ON(pdb):
+    resname = pdb.select('vdmselectionCA').getResnames()[0]
+    sc_coords = np.array([pdb.select('vdmselection' + name).getCoords()[0]
                           for name in residue_sc_names[resname] if name[0] in {'N', 'O'}])
     return sc_coords
 
-def make_sc_atom_coords_CS(pdb, vdmselection=None):
-    resname = pdb.select(vdmselection+'CA').getResnames()[0]
-    sc_coords = np.array([pdb.select(vdmselection + name).getCoords()[0]
+def make_sc_atom_coords_CS(pdb):
+    resname = pdb.select('vdmselectionCA').getResnames()[0]
+    sc_coords = np.array([pdb.select('vdmselection' + name).getCoords()[0]
                           for name in residue_sc_names[resname] if name[0] in {'C', 'S'}])
     return sc_coords
 
 # This code is problematic because what if the iFG has a PHE or TYR in it, where more than 2 atoms need to be flipped at once?
 # Sophia: don't need to worry about this now bc I'm only looking at the interactamer atoms
-def make_ifg_atom_sele(pdb, comb, ifgselection=None, scoring=False):
+def make_ifg_atom_sele(pdb, comb, scoring=False):
     """uses iFG definitions in comb object to select iFGs in the parsed protein object that have all atoms
     and occupancies = 1.
     """
@@ -566,8 +566,6 @@ def make_ifg_atom_sele(pdb, comb, ifgselection=None, scoring=False):
         poss_ifg_sel = pdb.select('chain Y and resnum 10')
         if scoring==True:
             poss_ifg_sel = pdb.select('chain X and resnum 1')
-        if ifgselection is not None:
-            poss_ifg_sel = pdb.select(ifgselection)
         if poss_ifg_sel is not None:
             ifg_resindices, indices = np.unique(poss_ifg_sel.getResindices(), return_index=True)
             ifg_resnames = poss_ifg_sel.getResnames()[indices]

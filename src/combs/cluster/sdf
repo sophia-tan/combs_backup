@@ -1,0 +1,41 @@
+
+    if resn != 'TYR' and resn not in flip_residues:
+        bb_coords, sc_coords, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs, vdmelem1avgdists = \
+            make_rel_vdm_coords(vdm, comb, origin_atom, plane_atom1, plane_atom2)
+    
+    elif resn == 'TYR':
+        x = make_rel_vdm_coords(vdm, comb, origin_atom, plane_atom1, plane_atom2)
+        y = make_rel_vdm_coords(vdm, comb, origin_atom, 'CE2', plane_atom2, unflipped=False)
+        xelem1dist = x[8]
+        yelem1dist = y[8]
+        if xelem1dist <= yelem1dist:
+            bb_coords, sc_coords, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs, vdmelem1avgdists = x
+        else:
+            bb_coords, sc_coords, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs, vdmelem1avgdists = y
+
+
+    elif resn in flip_residues:
+        x = make_rel_vdm_coords(vdm, comb, origin_atom, plane_atom1, plane_atom2)
+        y = make_rel_vdm_coords(vdm, comb, origin_atom, plane_atom2, plane_atom1, unflipped=False)
+        xelem1dist = x[8]
+        yelem1dist = y[8]
+        if xelem1dist <= yelem1dist:
+            bb_coords, sc_coords, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs, vdmelem1avgdists = x
+        else:
+            bb_coords, sc_coords, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs, vdmelem1avgdists = y
+
+    for i, bbc, scc, sccon, scccs, ic, icon, iccs, pdb in zip(range(len(bb_coords)), bb_coords, sc_coords, \
+            sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs):
+        
+        pklout.append([ifg_count, vdm_count, bbc, scc, sccon, scccs, ic, icon, iccs, resn])
+        string = repr(pdb).split()[1].split('_')
+        pr.writePDB(pdb_path + '_'.join(string[:-1]) + '_'+string[-1] + '_oriented.pdb.gz', pdb)
+    return pklout
+
+def make_rel_vdms(df, an, outpath, comb, origin_atom, plane_atom1, plane_atom2):
+    if outpath[-1] != '/':
+        outpath += '/'
+    resns = set(df.groupby('resname_vdm').groups).intersection(set(interactamer_atoms.keys()))
+    for resn in resns:
+        vdms = parse_interactamers_aa(df, an, resn)
+        if vdms:

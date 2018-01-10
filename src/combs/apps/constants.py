@@ -6,7 +6,11 @@ one_letter_code = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K',
                    'ILE': 'I', 'PRO': 'P', 'THR': 'T', 'PHE': 'F', 'ASN': 'N',
                    'GLY': 'G', 'HIS': 'H', 'LEU': 'L', 'ARG': 'R', 'TRP': 'W',
                    'ALA': 'A', 'VAL': 'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M',
-                   'MSE': 'm', 'ANY': '.'}
+                   'MSE': 'm', 'ANY': '.', 'APX': '*'}
+
+three_letter_code = {}
+for k, v in one_letter_code.items():
+    three_letter_code[v] = k
 
 #interactamer atoms are listed such that the flippable atoms are at indices 1 and 2
 # interactamer_atoms = {'HIS': ['NE2', 'CD2', 'CE1', 'ND1', 'CG'],
@@ -41,6 +45,7 @@ interactamer_atoms['LYS']['Amino'] = ['CE', 'CD', 'NZ']
 interactamer_atoms['ASP']['Carboxylate'] = ['CG', 'OD1', 'OD2']
 interactamer_atoms['GLN']['Carboxamide'] = ['CD', 'OE1', 'NE2']
 interactamer_atoms['GLU']['Carboxylate'] = ['CD', 'OE1', 'OE2']
+interactamer_atoms['APX']['Carboxamide'] = ['C11', 'O1', 'N3']
 interactamer_atoms['ASN']['Carboxamide'] = ['CG', 'OD1', 'ND2']
 interactamer_atoms['ALA']['Methyl'] = ['C', 'CA', 'CB']
 interactamer_atoms['ARG']['Guano'] = ['CZ', 'NH2', 'NH1']
@@ -110,7 +115,7 @@ residue_sc_names = {'ALA': ['CB'], 'CYS': ['CB', 'SG'], 'ASP': ['CB', 'CG', 'OD1
                     'ARG': ['CB', 'CG', 'CD', 'NE', 'CZ', 'NH1', 'NH2']}
 
 ifg_sele_dict = {}
-ifg_sele_dict['carboxamide'] = {'ASN': 'CB CG ND2 OD1', 'GLN': 'CG CD NE2 OE1'}
+ifg_sele_dict['carboxamide'] = {'ASN': 'CB CG ND2 OD1', 'GLN': 'CG CD NE2 OE1', 'APX': 'C10 C11 N3 O1'}
 ifg_sele_dict['carboxylate'] = {'ASP': 'CB CG OD2 OD1', 'GLU': 'CG CD OE2 OE1'}
 ifg_sele_dict['imidazole'] = {'HIS': 'CG CD2 NE2 CE1 ND1'}
 ifg_sele_dict['indole'] = {'TRP': 'CG CD1 NE1 CE2 CZ2 CH2 CZ3 CE3 CD2'}
