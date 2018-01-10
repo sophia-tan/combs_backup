@@ -199,16 +199,16 @@ def cooperativity(vdm_vdm_pair, lookup_dir, ifgname):
 def exp_num_nn(ifgname, resn):
     resnpkl = pkl.load(open(''))
 
-def get_transformed_ifgcoords(resn, ifgcoords, parsed, comb, is_bb, is_sc):
+def get_transformed_ifgcoords(resn, ifgcoords, parsed, comb, is_bb, is_sc,vdmselection=None, ifgselection=None):
     '''helper function'''
     ifgcoords = [] # list of list. inner list is [ifgcoords, BBorSCtype]
     if is_sc:
         for key in apps.constants.interactamer_atoms[resn].keys():
             origin_atom, plane_atom1, plane_atom2 = apps.constants.interactamer_atoms[resn][key]
-            coords = transform_vdmifg(resn, ifgcoords, parsed, comb, origin_atom, plane_atom1, plane_atom2)
+            coords = transform_vdmifg(resn, ifgcoords, parsed, comb, origin_atom, plane_atom1, plane_atom2, vdmselection=vdmselection, ifgselection=ifgselection)
             ifgcoords.append([coords, 'SC'])
     if is_bb:
-        coords1 = transform_vdmifg(resn, ifgcoords, parsed, comb, 'C', 'O', 'CA')
+        coords1 = transform_vdmifg(resn, ifgcoords, parsed, comb, 'C', 'O', 'CA', vdmselection=vdmselection, ifgselection=ifgselection)
         ifgcoords.append([coords1, 'C_O'])
         # turning off N H CA bc it's not named 'H' for all vdms
         #coords2 = transform_vdmifg(resn, ifgcoords, parsed, comb, 'N', 'H', 'CA')
@@ -216,15 +216,15 @@ def get_transformed_ifgcoords(resn, ifgcoords, parsed, comb, is_bb, is_sc):
     return ifgcoords
 
 
-def transform_vdmifg(resn, ifgcoords, parsed, comb, origin_atom, plane_atom1, plane_atom2):
+def transform_vdmifg(resn, ifgcoords, parsed, comb, origin_atom, plane_atom1, plane_atom2, vdmselection=None, ifgselection=None):
     #origin_atom, plane_atom1, plane_atom2 = 'C', 'O', 'CA'
     if resn != 'TYR' and resn not in apps.constants.flip_residues:
         bb_coords, sc_coords, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs, vdmelem1avgdists = \
-            make_rel_vdm_coords(parsed, comb, origin_atom, plane_atom1, plane_atom2, scoring=True)
+            make_rel_vdm_coords(parsed, comb, origin_atom, plane_atom1, plane_atom2, vdmselection=vdmselection, ifgselection=ifgselection, scoring=True)
     
     elif resn == 'TYR':
-        x = make_rel_vdm_coords(parsed, comb, origin_atom, plane_atom1, plane_atom2, scoring=True)
-        y = make_rel_vdm_coords(parsed, comb, origin_atom, 'CE2', plane_atom2, unflipped=False, scoring=True)
+        x = make_rel_vdm_coords(parsed, comb, origin_atom, plane_atom1, plane_atom2, vdmselection=vdmselection, ifgselection=ifgselection,  scoring=True)
+        y = make_rel_vdm_coords(parsed, comb, origin_atom, 'CE2', plane_atom2, vdmselection=vdmselection, ifgselection=ifgselection, unflipped=False, scoring=True)
         xelem1dist = x[8]
         yelem1dist = y[8]
         if xelem1dist <= yelem1dist:
@@ -232,9 +232,9 @@ def transform_vdmifg(resn, ifgcoords, parsed, comb, origin_atom, plane_atom1, pl
         else:
             bb_coords, sc_coords, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs, vdmelem1avgdists = y
 
-    elif resn in flip_residues:
-        x = make_rel_vdm_coords(parsed, comb, origin_atom, plane_atom1, plane_atom2, scoring=True)
-        y = make_rel_vdm_coords(parsed, comb, origin_atom, plane_atom2, plane_atom1, unflipped=False, scoring=True)
+    elif resn in apps.constants.flip_residues:
+        x = make_rel_vdm_coords(parsed, comb, origin_atom, plane_atom1, plane_atom2, vdmselection=vdmselection, ifgselection=ifgselection, scoring=True)
+        y = make_rel_vdm_coords(parsed, comb, origin_atom, plane_atom2, plane_atom1, vdmselection=vdmselection, ifgselection=ifgselection, unflipped=False, scoring=True)
         xelem1dist = x[8]
         yelem1dist = y[8]
         if xelem1dist <= yelem1dist:
@@ -243,27 +243,65 @@ def transform_vdmifg(resn, ifgcoords, parsed, comb, origin_atom, plane_atom1, pl
             bb_coords, sc_coords, sc_coords_ON, sc_coords_CS, ifg_coords, ifg_ON_coords, ifg_CS_coords, pdbs, vdmelem1avgdists = y
     return ifg_coords
 
-def interactamer_geom_ligand(pdb, ifgname, ligname, lookup_dir, is_bb, is_sc):
+def get_num_nn(pdb, ifgname, ligname, lookup_dir, is_bb, is_sc, vdmselection=None, ifgselection=None, dist=None):
     ##### make sure to add the ligand's resname and atoms to interactamer_atoms in constants.py ####
-
     parsed = pr.parsePDB(pdb)
     comb = parse.Comb(apps.constants.ifg_sele_dict[ifgname])
-    resn = parsed.select('chain X and resnum 10').getResnames()[0] # of vdm
-
+    try:
+        resn = parsed.select('chain X and resnum 10').getResnames()[0] # of vdm
+    except:
+        resn = parsed.select(vdmselection[:-10]).getResnames()[0]
     ifgcoords = [] # for HIS, there will be 2 sets
-    ifgcoords = get_transformed_ifgcoords(resn, ifgcoords, parsed, comb, is_bb, is_sc)
+    ifgcoords = get_transformed_ifgcoords(resn, ifgcoords, parsed, comb, is_bb, is_sc,vdmselection=vdmselection, ifgselection=ifgselection)
     #  will also need to get the NN scores for sc AND bb (C_O and N_CA) if the vdm 
     # makes bb AND sc interactions. compare to see which has the best score 
+    # didn't worry about any of this for integrin
     num_nn = []
     for coords in ifgcoords:
         # will have 2 for HIS
         coord, typ = coords
         coord = coord[0].reshape(1,-1)
-        nnfit = pkl.load(open(lookup_dir+'fitted_NN/NNfit_%s_with_%s_%s.pkl'%(ifgname,resn,typ),'rb'))
-        number_nn = nnfit.radius_neighbors(coord,return_distance=False)
-        print(number_nn, typ)
+        if dist is None:
+            nnfit = pkl.load(open(lookup_dir+'fitted_NN/NNfit_%s_with_%s_%s.pkl'%(ifgname,resn,typ),'rb'))
+        else:
+            nnfit = pkl.load(open(lookup_dir+'fitted_NN/NNfit_%s_with_%s_%s_%s.pkl'%(ifgname,resn,typ,dist),'rb'))
+        number_nn = nnfit.radius_neighbors(coord,return_distance=False)[0]
+        number_nn = len(number_nn)
         num_nn.append(number_nn)
-    return num_nn
+    return num_nn, resn, nnfit
+
+def get_exp_num(typ, resn, ifgname, nnfit):
+    all_coords = pkl.load(open('/home/gpu/Sophia/STcombs/20171118/%s/clusters/%s/pickle/%s_rel_vdms.pickle'%(ifgname,typ,resn),'rb'))[:,6]
+    avg = []
+    for coord in all_coords:
+        coord = coord.reshape(1,-1)
+        number_nn = nnfit.radius_neighbors(coord,return_distance=False)[0]
+        number_nn = len(number_nn)
+        avg.append(number_nn)
+    avg = np.mean(avg)
+    return avg
+
+
+def interactamer_geom_ligand(pdb, ifgname, ligname, lookup_dir, is_bb, is_sc, vdmselection=None, ifgselection=None, dist=None):
+    num_nn, resn, nnfit = get_num_nn(pdb, ifgname, ligname, lookup_dir, is_bb, is_sc, vdmselection=vdmselection, ifgselection=ifgselection, dist=dist)
+    index = np.where(num_nn==max(num_nn))[0] # get index of the largest # in num_nn
+    try:
+        num_nn =num_nn[index]
+    except:
+        num_nn=num_nn[0]
+    # determine exp_num
+    if is_sc:
+        typ = 'SC'
+    if is_bb:
+        typ='C_O'
+    # !!!!!! not robust for if it'sboth SC and bb!!!! !!!!!! #
+    exp = get_exp_num(typ, resn, ifgname, nnfit)
+    if num_nn != 0:
+        score = np.round(-np.log10(num_nn/exp),1)
+    else:
+        score=None
+    return num_nn,np.round(exp,1),score
+
 ############################################################################################
 ############################ get final pose scores ############################################
 ############################################################################################

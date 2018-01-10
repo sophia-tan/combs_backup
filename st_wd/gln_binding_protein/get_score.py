@@ -1,29 +1,60 @@
-# commandline args: pdb of design, txtfile of vdms in this format:
-#   resnum whitespace threeletterAA ifg 
-#   Note: separate multiple ifgs with comma and NO WHITESPACE
-
 import sys
 from ScoringFunctions import *
-from PyrosettaScores import *
+#from PyrosettaScores import *
 import prody as pr
 import freesasa, math
 import numpy as np, pickle as pkl, pandas as pd
+from pprint import pprint
+from apixaban_info import *
 
-script, design_pdb, fg_vdm_txt, ligand_txt, lookup_dir= sys.argv
+script, lookup_dir = sys.argv
+#, fg_vdm_txt, ligand_txt, lookup_dir= sys.argv
+ligname = 'APX'
+####### 1) score naked backbone scaffold ####################
+for scaffold_pdb in ['1y28_bbH_0001.pdb']:
+    scaffold_scoredict = score_scaffold(scaffold_pdb, lookup_dir)
+    # outputs dict where key=resnum, value=burial score
 
-# 1) make pandas df to keep track of vdms and their scores
-score_df = make_df(fg_vdm_txt)
+####### 2) score single and pairwise terms ##################
 
-## 2) add burial info
-#sasadict = cb_sasas(design_pdb, score_df)
-#score_df = scoring_sasa(sasadict, score_df, lookup_dir)
-#
-## 3) add SS and rotamer info
-#score_df = pyrosetta_scores(design_pdb,score_df.index, score_df)
+''' for every pdb in the temp_pdbs folder...'''
+temp_pdbs = ['1_mem_177235_backboneCO_temp_188A_SC_iFG_631327_vdM_2_iFlip_1_backboneCO_oriented.pdb',
+'1_mem_244774_carboxamide_temp_212A_SC_iFG_121240_vdM_3_iFlip_1_carboxamide_oriented.pdb',
+'1_mem_254344_backboneCO_temp_199A_SC_iFG_782043_vdM_4_iFlip_1_backboneCO_oriented.pdb',
+'1_mem_272364_backboneCO_temp_200A_SC_iFG_368916_vdM_2_iFlip_1_backboneCO_oriented.pdb',
+'1_mem_301246_backboneCO_temp_202A_SC_iFG_707846_vdM_1_iFlip_1_backboneCO_oriented.pdb',
+'1_mem_329742_backboneCO_temp_210A_SC_iFG_697140_vdM_1_iFlip_1_backboneCO_oriented.pdb',
+'1_mem_65798_carboxamide_temp_176A_SC_iFG_145088_vdM_1_iFlip_1_carboxamide_oriented.pdb',
+'1_mem_757085_backboneCO_temp_251A_SC_iFG_80686_vdM_3_iFlip_1_backboneCO_oriented.pdb',
+'2_mem_66703_carboxamide_temp_176A_SC_iFG_104322_vdM_3_iFlip_1_carboxamide_oriented.pdb',
+'3_mem_142023_backboneCO_temp_176A_SC_iFG_361743_vdM_1_iFlip_1_backboneCO_oriented.pdb']
 
-# 4) parse pdb and add freq(aai) info
-parsed_des = pr.parsePDB(design_pdb)
-score_df = freqaai(score_df, parsed_des, ligand_txt, lookup_dir)
+for ligand_vdm_pair in temp_pdbs:
+    scoredict = {} # keys=ifg, values=scorelist
+    for ifgname in ['carboxamide']:
+    #for ifgname in ifg_list: ### hardcoding this. need a list called ifg_list
+        ifgatoms = ligand_ifgs[ifgname]
+        # get freq aai score of vdm
+        vdmresnum = int(ligand_vdm_pair.split('_')[5][:-1])
+        bb_score, sc_score = freqaai(ligand_vdm_pair, ifgname, ifgatoms, lookup_dir)
+        #phipsi_score, rotamer_score = pyrosetta_scores(ligand_vdm_pair, vdmresnum)
+        if bb_score is not None or sc_score is not None:
+            print(bb_score, sc_score, ligand_vdm_pair)
+            interactamer_score = interactamer_geom_ligand(ligand_vdm_pair, ifgname, ligname, lookup_dir,\
+                is_bb=bb_score is not None, is_sc=sc_score is not None)
+            print(interactamer_score)
+            #score_list = [bb_score, sc_score, phipsi_score, rotamer_score]
+            #scoredict[ifgname] = score_list
 
-score_df = score_df.drop(['rosetta hbonds', 'BB or SC', 'sasa_cb_3a' ],axis=1)
-print(score_df)
+''' for every pdb in the temp_pdbs_pairs folder '''
+temp_pdbs_pairs = ['0_0_mem_temp_pair_iFG_145088_vdM_1_iFlip_1_carboxamide_oriented.pdb_iFG_631327_vdM_2_iFlip_1_backboneCO_oriented.pdb']
+for vdm_vdm_pair in temp_pdbs_pairs:
+    ifgname= 'carboxamide' #### hardcoded this in, need to have a variable for this ####
+    coop_score = cooperativity(vdm_vdm_pair, lookup_dir, ifgname)
+    score_list = [coop_score]
+
+####### 3) score whole pose ####################################
+poses_list = ['pose.pdb']
+for pose in poses_list:
+    ideal_hbond_score = ideal_hbonds(pose, ifgname, ligand_ifgs[ifgname], lookup_dir)
+
